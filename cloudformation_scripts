@@ -1,0 +1,77 @@
+/------------------------AutoScaling.yaml--------------------------------------------/
+AWSTemplateFormatVersion: "2010-09-09"
+Description: IND-Dataloc Launch config for windows with Powershell user data
+LaunchConfig: 
+  Type: AWS::AutoScaling::LaunchConfiguration
+  Properties: 
+    KeyName: " "
+    ImageId: "xxxxx"
+    InstanceType: "t2.medium"
+     SecurityGroups: 
+       -sg-xxxxx
+       -sg-xxxxx
+    SubnetId: "subnet-xxxxx"
+       AvailabilityZone: "us-east-1b"
+    UserData: 
+      Fn::Base64: 
+      <powershell
+      <>/powershell>
+      Tags:                   
+       - Key: "Application"             
+         Value: "Transv"
+         - Key: "Server"             
+         Value: "Windows_IIS"
+    EbsOptimized: "true"
+    BlockDeviceMappings: 
+      - DeviceName: "/dev/sda1"
+        Ebs: 
+          VolumeSize: "50"
+          VolumeType: "io1"
+          Iops: 200
+          DeleteOnTermination: "true"
+/------------------------loadbalancer.yaml--------------------------------------------/
+WebServerGroup: 
+  Type: AWS::AutoScaling::AutoScalingGroup
+  Properties: 
+    AvailabilityZones: 
+      Fn::GetAZs: ""
+    LaunchConfigurationName: 
+      Ref: "DataLocal"
+    MinSize: "2"
+    MaxSize: "2"
+    LoadBalancerNames: 
+      - Ref: "ElasticLoadBalancer"
+    MetricsCollection: 
+      - 
+        Granularity: "1Minute"
+        Metrics: 
+          - "GroupMinSize"
+          - "GroupMaxSize"
+myLifecycleHook: 
+  Type: AWS::AutoScaling::LifecycleHook
+  Properties: 
+    AutoScalingGroupName: 
+      Ref: myAutoScalingGroup
+    LifecycleTransition: "autoscaling:EC2_INSTANCE_TERMINATING"
+    NotificationTargetARN: 
+      Ref: lifecycleHookTopic
+    ElasticLoadBalancer:
+  Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+  Properties:
+    SecurityGroups: 
+     - sg-xxxxx
+    Scheme: internet-facing
+    Name: "dev"
+    Subnets: 
+     - subnet-xxxxx
+     - subnet-xxxxx
+ InternalLoadBalancer:
+  Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+  Properties:
+    Scheme: internal
+    Name: "dev"
+    Subnets:
+    - subnet-xxxxx
+    - subnet-xxxxx
+    SecurityGroups:
+    -  sg-xxxxx
